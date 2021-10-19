@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<style>
+		body {
+			margin: 40px;
+		}
+	</style>
+	<script src="https://code.jquery.com/jquery-3.6.0.js"
+		integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+	<script>
+		function login_check() {
+			if ($('#login_user').val().length == 0) {
+				alert("Login username empty");
+				return false;
+			}
+			if ($('#login_pass').val().length == 0) {
+				alert("Login password empty");
+				return false;
+			}
+			return true;
+		}
+		function signup_check() {
+			if ($('#signup_user').val().length == 0) {
+				alert("Sign up username empty");
+				return false;
+			}
+			if ($('#signup_pass').val().length == 0) {
+				alert("Sign up password empty");
+				return false;
+			}
+			return true;
+		}
+	</script>
+	<div style="text-align:center">
+		<h1>Welcome to the bookstore!</h1>
+
+		<div id="login" style="float:left; text-align: left;">
+			<h2 style="text-align:center">Login</h2>
+			<form action="/auth" method="post">
+				<label for="login_user">Username:</label> <input type="text" id="login_user" name="login_user"><br>
+				<label for="login_pass" style="text-align:left">Password:</label> <input type="password" id="login_pass"
+					name="login_pass" value="" style="float:right;"><br><br>
+				<input type="submit" value="Login" onclick="return login_check();" style="float:right;">
+			</form>
+		</div>
+
+		<div id="signup" style="float:right; text-align: left;">
+			<h2 style="text-align:center">Sign up</h2>
+			<form action="/create" method="post">
+				<label for="signup_user">Username:</label> <input type="text" id="signup_user" name="signup_user"><br>
+				<label for="signup_pass" style="text-align:left">Password:</label> <input type="password"
+					id="signup_pass" name="signup_pass" value="" style="float:right;"><br><br>
+				<input type="submit" value="Submit" onclick="return signup_check();" style="float:right;">
+			</form>
+		</div>
+	</div>
+</body>
+
+</html>

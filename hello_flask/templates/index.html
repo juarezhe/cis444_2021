@@ -20,20 +20,36 @@
 		}
 	</style>
 	<script src="https://code.jquery.com/jquery-3.6.0.js"
-		integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+		integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous">
+		</script>
 </head>
 
-<body>
+<body onload="checkToken()">
 	<script>
-		$.getJSON( "/fetchToken", function(json) {
-				console.log("JSON data: " + JSON.stringify(json));
-				console.log("JSON data: " + json);
-				alert("JSON data: " + JSON.stringify(json));
-				alert("JSON data: " + json);
-				$(".display").html(json);
-				$(".display").html(JSON.stringify(json));
+		var token;
+
+		function checkToken() {
+			if (token == undefined) {
+				console.log("Token value: " + token);
+				$.getJSON("/fetchToken", function (json) {
+					console.log(json.jwt);
+					token = json.jwt;
+					console.log(token);
+					appendToken();
+				})
 			}
-		)
+		}
+		function appendToken() {
+			var url = new URL(window.location.href);
+			var params = new URLSearchParams(url.search);
+
+			if (params.get('jwt') == null && token != null) {
+				params.append('jwt', token);
+				url = new URL(url.toString() + "?" + params.toString());
+				console.log(url.toString());
+				//window.location.href = url;
+			}
+		}
 		function login_check() {
 			if ($('#login_pass').val().length > 72) {
 				alert("Password must be 72 characters or less.");

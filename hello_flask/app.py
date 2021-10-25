@@ -76,7 +76,10 @@ def get_time():
 
 @app.route('/auth2') #endpoint
 def auth2():
-    jwt_str = jwt.encode({"username" : "cary", "age" : "so young"} , JWT_SECRET, algorithm="HS256")
+    jwt_str = jwt.encode({"username" : "cary",
+                            "age" : "so young",
+                            "books_ordered" : ['f', 'e'] } 
+                            , JWT_SECRET, algorithm="HS256")
     #print(request.form['username'])
     return json_response(jwt=jwt_str)
 
@@ -90,9 +93,9 @@ def exposejwt():
 @app.route('/hellodb') #endpoint
 def hellodb():
     cur = global_db_con.cursor()
-    cur.execute("select 5+5, 1+1");
-    first,second = cur.fetchone()
-    return json_response(a=first, b=second)
+    cur.execute("insert into music values( 'dsjfkjdkf', 1);")
+    global_db_con.commit()
+    return json_response(status="good")
 
 
 app.run(host='0.0.0.0', port=80)

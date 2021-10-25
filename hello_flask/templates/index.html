@@ -25,6 +25,15 @@
 
 <body>
 	<script>
+		$.getJSON( "/fetchToken", function(json) {
+				console.log("JSON data: " + JSON.stringify(json));
+				console.log("JSON data: " + json);
+				alert("JSON data: " + JSON.stringify(json));
+				alert("JSON data: " + json);
+				$(".display").html(json);
+				$(".display").html(JSON.stringify(json));
+			}
+		)
 		function login_check() {
 			if ($('#login_pass').val().length > 72) {
 				alert("Password must be 72 characters or less.");
@@ -56,9 +65,11 @@
 		<h1>Welcome to the bookstore!</h1>
 
 		<div style="float:right; background:#ECECEC;">
-			<div class="tab">
-				<div class="selected" style="width:50%; display:inline-block;" onclick="openUserAction(this, 'login')">
-					Login</div><div style="width:50%; display:inline-block;" onclick="openUserAction(this, 'signup')">Sign up</div>
+			<div class="tab" style="background:#FFFFFF">
+				<div class="selected" style="width:50%; display:inline-block; border-radius: 0px 10px 0px 0px;"
+					onclick="openUserAction(this, 'login')">
+					Login</div><div style="width:50%; display:inline-block; border-radius: 10px 0px 0px 0px;"
+					onclick="openUserAction(this, 'signup')">Sign up</div>
 			</div>
 
 			<div id="login" class="action">

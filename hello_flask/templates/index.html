@@ -24,30 +24,17 @@
 		</script>
 </head>
 
-<body onload="checkToken()">
+<body onload="handleSubmit()">
 	<script>
 		var token;
 
-		function checkToken() {
-			if (token == undefined) {
-				console.log("Token value: " + token);
-				$.getJSON("/fetchToken", function (json) {
-					console.log(json.jwt);
-					token = json.jwt;
-					console.log(token);
-					appendToken();
-				})
-			}
-		}
-		function appendToken() {
-			var url = new URL(window.location.href);
-			var params = new URLSearchParams(url.search);
+		async function handleSubmit() {
+			const getResponse = await fetch('/fetchToken');
+			token = await getResponse.json();
 
-			if (params.get('jwt') == null && token != null) {
-				params.append('jwt', token);
-				url = new URL(url.toString() + "?" + params.toString());
-				console.log(url.toString());
-				//window.location.href = url;
+			const postResponse = await $.post("/validateToken", { "jwt": token.jwt }, function (data, textStatus) { }, "json");
+			if (postResponse.data.jwt == token.jwt) {
+				$('#login_signup_bar').hide();
 			}
 		}
 		function login_check() {
@@ -80,7 +67,7 @@
 	<div style="text-align:center">
 		<h1>Welcome to the bookstore!</h1>
 
-		<div style="float:right; background:#ECECEC;">
+		<div id="login_signup_bar" style="float:right; background:#ECECEC;">
 			<div class="tab" style="background:#FFFFFF">
 				<div class="selected" style="width:50%; display:inline-block; border-radius: 0px 10px 0px 0px;"
 					onclick="openUserAction(this, 'login')">

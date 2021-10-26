@@ -28,25 +28,6 @@ def getBooks():
     return
 
 
-def getToken():
-    token = request.args.get('jwt')
-    print(token)
-    if token is None:
-        return False
-    return token
-
-
-def tokenIsValid():
-    token = getToken()
-    if token == False:
-        print("Token does not exist.")
-        return False
-    # TODO: Some kind of test for the token
-    print(json_response(output=jwt.decode(
-        token, JWT_SECRET, algorithms=["HS256"])))
-    return True
-
-
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
@@ -58,6 +39,18 @@ def fetchToken():
     if JWT_TOKEN is None:
         return index()
     return json_response(jwt=JWT_TOKEN)
+
+
+@app.route('/validateToken', methods=['POST'])
+def validateToken():
+    global JWT_TOKEN, JWT_SECRET
+    local_decode = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
+    post_decode = jwt.decode(request.form['jwt'], JWT_SECRET, algorithms=["HS256"])
+    if local_decode == post_decode:
+        print("Tokens match. Sending response.")
+        return json_response(data=request.form)
+    print("Tokens do not match. Loading index page.")
+    return index()
 
 
 @app.route('/login', methods=['POST'])

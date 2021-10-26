@@ -37,7 +37,9 @@ def index():
 def fetchToken():
     global JWT_TOKEN
     if JWT_TOKEN is None:
+        print("Token does not exist. Loading index page.")
         return index()
+    print("Token exists. Sending token.")
     return json_response(jwt=JWT_TOKEN)
 
 

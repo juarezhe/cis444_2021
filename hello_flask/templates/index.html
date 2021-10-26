@@ -11,12 +11,54 @@
 			float: center;
 		}
 
-		.tab div {
-			background: #FFFFFF;
+		.left.inner {
+			color: #7e7e7e;
+			background: #ffffff;
+			border-radius: 0px 0px 11px 0px;
 		}
 
-		.tab div.selected {
-			background: #ECECEC;
+		.left.inner.selected {
+			color: black;
+			background: #ececec;
+			border-radius: 0px 11px 0px 0px;
+		}
+
+		.left.outer {
+			width: 50%;
+			display: inline-block;
+			background: #ececec;
+		}
+
+		.left.outer.selected {
+			width: 50%;
+			display: inline-block;
+			background: #ececec;
+			border-radius: 0px 11px 0px 0px;
+		}
+
+		.right.inner {
+			color: #7e7e7e;
+			background: #ffffff;
+			border-radius: 0px 0px 0px 11px;
+		}
+
+		.right.inner.selected {
+			color: black;
+			background: #ececec;
+			border-radius: 11px 0px 0px 0px;
+		}
+
+		.right.outer {
+			width: 50%;
+			display: inline-block;
+			background: #ececec;
+		}
+
+		.right.outer.selected {
+			width: 50%;
+			display: inline-block;
+			background: #ececec;
+			border-radius: 11px 0px 0px 0px;
 		}
 	</style>
 	<script src="https://code.jquery.com/jquery-3.6.0.js"
@@ -52,8 +94,16 @@
 			return true;
 		}
 		function openUserAction(element, userAction) {
-			$("div").removeClass("selected");
-			element.classList.add("selected");
+			if (userAction == "login") {
+				$('.right').removeClass('selected');
+				$('.left')[0].classList.add('selected')
+				$('.left')[1].classList.add('selected')
+			}
+			if (userAction == "signup") {
+				$('.left').removeClass('selected');
+				$('.right')[0].classList.add('selected')
+				$('.right')[1].classList.add('selected')
+			}
 
 			var i;
 			var x = document.getElementsByClassName("action");
@@ -68,11 +118,8 @@
 		<h1>Welcome to the bookstore!</h1>
 
 		<div id="login_signup_bar" style="float:right; background:#ECECEC;">
-			<div class="tab" style="background:#FFFFFF">
-				<div class="selected" style="width:50%; display:inline-block; border-radius: 0px 10px 0px 0px;"
-					onclick="openUserAction(this, 'login')">
-					Login</div><div style="width:50%; display:inline-block; border-radius: 10px 0px 0px 0px;"
-					onclick="openUserAction(this, 'signup')">Sign up</div>
+			<div style="background:#FFFFFF">
+				<div class="left outer selected" onclick="openUserAction(this, 'login')"><div class="left inner selected">Login</div></div><div class="right outer" onclick="openUserAction(this, 'signup')"><div class="right inner">Sign up</div></div>
 			</div>
 
 			<div id="login" class="action">

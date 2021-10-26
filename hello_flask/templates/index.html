@@ -77,6 +77,7 @@
 			const postResponse = await $.post("/validateToken", { "jwt": token.jwt }, function (data, textStatus) { }, "json");
 			if (postResponse.data.jwt == token.jwt) {
 				$('#login_signup_bar').hide();
+				$('#item_display').show();
 			}
 		}
 		function login_check() {
@@ -93,33 +94,34 @@
 			}
 			return true;
 		}
-		function openUserAction(element, userAction) {
+		function switchForm(userAction) {
 			if (userAction == "login") {
 				$('.right').removeClass('selected');
 				$('.left')[0].classList.add('selected')
 				$('.left')[1].classList.add('selected')
+				$('#login')[0].style.display = "block";
+				$('#signup')[0].style.display = "none";
 			}
 			if (userAction == "signup") {
 				$('.left').removeClass('selected');
 				$('.right')[0].classList.add('selected')
 				$('.right')[1].classList.add('selected')
+				$('#login')[0].style.display = "none";
+				$('#signup')[0].style.display = "block";
 			}
-
-			var i;
-			var x = document.getElementsByClassName("action");
-			for (i = 0; i < x.length; i++) {
-				x[i].style.display = "none";
-			}
-			document.getElementById(userAction).style.display = "block";
 		}
 	</script>
 
 	<div style="text-align:center">
 		<h1>Welcome to the bookstore!</h1>
 
+		<div id="item_display" style="background:#ECECEC; display: none;">
+			Books will be displayed here.
+		</div>
+
 		<div id="login_signup_bar" style="float:right; background:#ECECEC;">
 			<div style="background:#FFFFFF">
-				<div class="left outer selected" onclick="openUserAction(this, 'login')"><div class="left inner selected">Login</div></div><div class="right outer" onclick="openUserAction(this, 'signup')"><div class="right inner">Sign up</div></div>
+				<div class="left outer selected" onclick="switchForm('login')"><div class="left inner selected">Login</div></div><div class="right outer" onclick="switchForm('signup')"><div class="right inner">Sign up</div></div>
 			</div>
 
 			<div id="login" class="action">

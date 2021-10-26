@@ -1,21 +1,22 @@
 from flask import Flask, render_template, request
 from flask_json import FlaskJSON, json_response
-from bookstore_con import get_db
+from BookstoreCon import GetDb
 import jwt
 import bcrypt
 
 app = Flask(__name__)
 FlaskJSON(app)
 
-global_db_con = get_db()
+GLOBAL_DB_CON = GetDb()
 JWT_TOKEN = None
 JWT_SECRET = None
 with open("secret.txt", "r") as f:
     JWT_SECRET = f.read()
 
 
+# Default endpoint.
 @app.route('/', methods=['GET'])
-def index():
+def Index():
     return render_template('index.html')
 
 
@@ -24,8 +25,8 @@ def index():
 #
 # Returns the successfulness of the database add.
 @app.route('/addBooks', methods=['POST'])
-def addBooks():
-    cur = global_db_con.cursor()
+def AddBooks():
+    cur = GLOBAL_DB_CON.cursor()
     cur.execute("select * from books;")
     message = '{'
     while 1:
@@ -41,8 +42,8 @@ def addBooks():
 
 # Returns the entire list of all books in the database.
 @app.route('/fetchBookList', methods=['GET'])
-def fetchBookList():
-    cur = global_db_con.cursor()
+def FetchBookList():
+    cur = GLOBAL_DB_CON.cursor()
     cur.execute("select * from books;")
     message = '{'
     while 1:
@@ -61,12 +62,13 @@ def fetchBookList():
 # Returns a web token if a valid one exists. Otherwise, returns an error
 # message.
 @app.route('/fetchToken', methods=['GET'])
-def fetchToken():
+def FetchToken():
     global JWT_TOKEN
     if JWT_TOKEN is None:
         print("Token does not exist. Sending error message.")
-        return json_response(data={"Error": "No token stored in server."})
-    return json_response(jwt=JWT_TOKEN)
+        return json_response(data={"error": "No token stored in server."})
+    print("Token exists. Sending token.")
+    return json_response(data={"jwt": JWT_TOKEN})
 
 
 # Accepts a web token.
@@ -74,63 +76,64 @@ def fetchToken():
 # Returns the successfulness of the token comparison. On success, returns
 # the same web token? On failure, returns an error message.
 @app.route('/validateToken', methods=['POST'])
-def validateToken():
+def ValidateToken():
     global JWT_TOKEN, JWT_SECRET
 
     # If the token is still None, it hasn't been set. Don't attempt to
     # validate.
     if JWT_TOKEN is None:
         print("Token does not exist. Sending error message.")
-        return json_response(data={"Error": "No token stored in server."})
+        return json_response(data={"error": "No token stored in server."})
+    else:
+        fromServer = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
+        fromRequest = jwt.decode(
+            request.form['jwt'], JWT_SECRET, algorithms=["HS256"])
 
-    local_decode = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
-    post_decode = jwt.decode(
-        request.form['jwt'], JWT_SECRET, algorithms=["HS256"])
-    if local_decode == post_decode:
-        print("Tokens match. Sending success message.")
-        return json_response(data=request.form)
-
-    print("Tokens do not match. Sending error message.")
-    return json_response(data={"Error": "Tokens do not match."})
+        if fromServer == fromRequest:
+            print("Tokens match. Sending success message.")
+            return json_response(data=request.form)
+        else:
+            print("Tokens do not match. Sending error message.")
+            return json_response(data={"error": "Tokens do not match."})
 #---------------------------End Token APIs--------------------------------#
 
 
 #-------------------------Start Account APIs------------------------------#
 # Accepts a username and password for authentication against database.
 #
-# Returns successfulness of authentication. On success, returns a web
-# token? On failure, returns an error message.
+# Returns error message on failed authentication.
 @app.route('/login', methods=['POST'])
-def login():
-    cur = global_db_con.cursor()
-    form_salted = bcrypt.hashpw(
-        bytes(request.form['login_pass'], 'utf-8'), bcrypt.gensalt(8))
+def Login():
+    # TODO: Record login attempts?
+    cur = GLOBAL_DB_CON.cursor()
     cur.execute("select * from users where username = '" +
                 request.form['login_user'] + "';")
     row = cur.fetchone()
     if row is None:
         print('Username "' + request.form['login_user'] +
               '" does not exist. Sending error message.')
-        return json_response(data={"Error": "Username '" + request.form['login_user'] + "' does not exist."})
+        json_response(data={"error": "Username '" +
+                      request.form['login_user'] + "' does not exist."})
     else:
-        if bcrypt.checkpw(form_salted, bytes(row[2], 'utf-8')) == 'false':
-            print('Passwords do not match. Sending error message.')
-            return json_response(data={"Error": "Passwords do not match."})
-        else:
-            print('Login by user ' + request.form['login_user'])
+        if bcrypt.checkpw(bytes(request.form['login_pass'], 'utf-8'), bytes(row[2], 'utf-8')) == True:
+            print('Login by user ' + request.form['login_user'] + ".")
             global JWT_TOKEN, JWT_SECRET
             JWT_TOKEN = jwt.encode(
                 {"userId": row[0]}, JWT_SECRET, algorithm="HS256")
-            # TODO: This should be a valid message.
-            # Potentially return the token itself in this message.
-            # return json_response(data={"Error": "Unknown error."})
-    return json_response(data={"Error": "Unknown error."}) # TODO: Remove this when above is addressed.
+        else:
+            print('Passwords do not match. Sending error message.')
+            json_response(data={"error": "Passwords do not match."})
+    return Index()
 
 
+# Accepts a username and password for adding to the database.
+#
+# Returns error message on failed database add.
 @app.route('/signup', methods=['POST'])
-def signup():
-    cur = global_db_con.cursor()
-    cur.execute("select username from users where username = '" +
+def Signup():
+    # TODO: update with JSON responses.
+    cur = GLOBAL_DB_CON.cursor()
+    cur.execute("select * from users where username = '" +
                 request.form['signup_user'] + "';")
     if cur.fetchone() is None:
         salted = bcrypt.hashpw(
@@ -141,7 +144,7 @@ def signup():
     else:
         print('Error: username "' +
               request.form['signup_user'] + '" already in use.')
-    return index()
+    return Index()
 #---------------------------End Account APIs------------------------------#
 
 

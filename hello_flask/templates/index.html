@@ -66,18 +66,23 @@
 		</script>
 </head>
 
-<body onload="handleSubmit()">
+<body onload="handleToken()">
 	<script>
 		var token;
 
-		async function handleSubmit() {
+		async function handleToken() {
 			const getResponse = await fetch('/fetchToken');
-			token = await getResponse.json();
+			var message = await getResponse.json();
+			if (message.data.jwt) {
+				token = message.data;
+			}
 
-			const postResponse = await $.post("/validateToken", { "jwt": token.jwt }, function (data, textStatus) { }, "json");
-			if (postResponse.data.jwt == token.jwt) {
-				$('#login_signup_bar').hide();
-				$('#item_display').show();
+			if (token != undefined) {
+				const postResponse = await $.post("/validateToken", { "jwt": token.jwt }, function (data, textStatus) { }, "json");
+				if (postResponse.data.jwt == token.jwt) {
+					$('#login_signup_bar').hide();
+					$('#item_display').show();
+				}
 			}
 		}
 		function login_check() {

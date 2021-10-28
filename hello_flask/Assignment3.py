@@ -10,142 +10,151 @@ FlaskJSON(app)
 GLOBAL_DB_CON = GetDb()
 JWT_TOKEN = None
 JWT_SECRET = None
-with open("secret.txt", "r") as f:
-    JWT_SECRET = f.read()
+try:
+    with open("secret.txt", "r") as f:
+        JWT_SECRET = f.read()
+except:
+    JWT_SECRET = "clean glove favored starlet bamboo puppet detection crispy gumball imprison quiet collected"
 
 
 # Default endpoint.
-@app.route('/', methods=['GET'])
+@app.route("/", methods=["GET"])
 def Index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
 #---------------------------Start Item APIs-------------------------------#
-# Accepts aone or more books for adding to the database.
+# Accepts one or more books for adding to the database.
 #
 # Returns the successfulness of the database add.
-@app.route('/addBooks', methods=['POST'])
-def AddBooks():
-    cur = GLOBAL_DB_CON.cursor()
-    cur.execute("select * from books;")
-    message = '{'
-    while 1:
-        row = cur.fetchone()
-        if row is None:
-            break
-        else:
-            message += row
-    message += '}'
-    print(message)
-    return json_response(data=message)
+# @app.route("/addBooks", methods=["POST"])
+# def AddBooks():
+    # TODO: This is a bit grand for the project, but would simplify
+    # adding books to the database.
+    # cursor = GLOBAL_DB_CON.cursor()
+
+    # TODO: For each book, do an insert.
+    # Build JSON message while iterating for return later.
+    # cursor.execute("insert into books values (nextval('books_book_id_seq'::regclass),'" +
+    #               request.form["book_title"] + "','" + request.form["book_price"] + "');")
+    # Finally, commit the database changes.
+    # cursor.commit()
+    # return  # json_response(data=message)
 
 
-# Returns the entire list of all books in the database.
-@app.route('/fetchBookList', methods=['GET'])
+# Returns a list of all books in the database.
+@ app.route("/fetchBookList", methods=["GET"])
 def FetchBookList():
-    cur = GLOBAL_DB_CON.cursor()
-    cur.execute("select * from books;")
-    message = '{'
+    # TODO: Add books to the database.
+    cursor = GLOBAL_DB_CON.cursor()
+    cursor.execute("select * from books;")
+
+    count = 0
+    message = "{books:{"
     while 1:
-        row = cur.fetchone()
+        row = cursor.fetchone()
         if row is None:
             break
         else:
-            message += row
-    message += '}'
-    print(message)
+            if count > 0:
+                message += ","
+            message += "{title:" + row[1] + ",price:" + row[2] + "}"
+            count += 1
+    message += "}\}"
+
+    print("Sending list of books.")
     return json_response(data=message)
 #----------------------------End Item APIs--------------------------------#
 
 
 #--------------------------Start Token APIs-------------------------------#
-# Returns a web token if a valid one exists. Otherwise, returns an error
-# message.
-@app.route('/fetchToken', methods=['GET'])
-def FetchToken():
+@ app.route("/logout", methods=["GET"])
+def Logout():
     global JWT_TOKEN
-    if JWT_TOKEN is None:
-        print("Token does not exist. Sending error message.")
-        return json_response(data={"error": "No token stored in server."})
-    print("Token exists. Sending token.")
-    return json_response(data={"jwt": JWT_TOKEN})
+    JWT_TOKEN = None
+    print("User logged out. Sending updated token.")
+    return json_response(data={"message": "User logged out."})
 
 
 # Accepts a web token.
 #
-# Returns the successfulness of the token comparison. On success, returns
-# the same web token? On failure, returns an error message.
-@app.route('/validateToken', methods=['POST'])
+# Returns message indicating successfulness of token validation.
+@ app.route("/validateToken", methods=["POST"])
 def ValidateToken():
     global JWT_TOKEN, JWT_SECRET
 
-    # If the token is still None, it hasn't been set. Don't attempt to
+    # If the token is still None, it hasn"t been set. Don"t attempt to
     # validate.
     if JWT_TOKEN is None:
         print("Token does not exist. Sending error message.")
-        return json_response(data={"error": "No token stored in server."})
+        return json_response(data={"message": "User is not logged in."}, status=404)
     else:
         fromServer = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
         fromRequest = jwt.decode(
-            request.form['jwt'], JWT_SECRET, algorithms=["HS256"])
+            request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
 
         if fromServer == fromRequest:
             print("Tokens match. Sending success message.")
-            return json_response(data=request.form)
+            return json_response(data={"message": "User successfully validated."})
         else:
             print("Tokens do not match. Sending error message.")
-            return json_response(data={"error": "Tokens do not match."})
+            return json_response(data={"message": "User is not logged in."}, status=404)
 #---------------------------End Token APIs--------------------------------#
 
 
 #-------------------------Start Account APIs------------------------------#
-# Accepts a username and password for authentication against database.
+# Accepts username and password for authentication against database.
 #
-# Returns error message on failed authentication.
-@app.route('/login', methods=['POST'])
+# Returns message indicating successfulness of authentication process.
+@app.route("/login", methods=["POST"])
 def Login():
     # TODO: Record login attempts?
-    cur = GLOBAL_DB_CON.cursor()
-    cur.execute("select * from users where username = '" +
-                request.form['login_user'] + "';")
-    row = cur.fetchone()
+    cursor = GLOBAL_DB_CON.cursor()
+    cursor.execute("select * from users where username = '" +
+                   request.form["username"] + "';")
+    row = cursor.fetchone()
+
     if row is None:
-        print('Username "' + request.form['login_user'] +
-              '" does not exist. Sending error message.')
-        json_response(data={"error": "Username '" +
-                      request.form['login_user'] + "' does not exist."})
+        print("Username '" + request.form["username"] +
+              "' does not exist. Sending error message.")
+        return json_response(data={"message": "Username '" +
+                                   request.form["username"] + "' does not exist."}, status=404)
     else:
-        if bcrypt.checkpw(bytes(request.form['login_pass'], 'utf-8'), bytes(row[2], 'utf-8')) == True:
-            print('Login by user ' + request.form['login_user'] + ".")
+        if bcrypt.checkpw(bytes(request.form["password"], "utf-8"), bytes(row[2], "utf-8")) == True:
+            print("Login by user '" + request.form["username"] + "'.")
             global JWT_TOKEN, JWT_SECRET
             JWT_TOKEN = jwt.encode(
                 {"userId": row[0]}, JWT_SECRET, algorithm="HS256")
+            return json_response(
+                data={"jwt": JWT_TOKEN})
         else:
-            print('Passwords do not match. Sending error message.')
-            json_response(data={"error": "Passwords do not match."})
-    return Index()
+            print("Incorrect password. Sending error message.")
+            return json_response(
+                data={"message": "Incorrect password."}, status=404)
 
 
-# Accepts a username and password for adding to the database.
+# Accepts username and password for adding to the database.
 #
-# Returns error message on failed database add.
-@app.route('/signup', methods=['POST'])
+# Returns message indicating successfulness of user creation.
+@app.route("/signup", methods=["POST"])
 def Signup():
-    # TODO: update with JSON responses.
-    cur = GLOBAL_DB_CON.cursor()
-    cur.execute("select * from users where username = '" +
-                request.form['signup_user'] + "';")
-    if cur.fetchone() is None:
-        salted = bcrypt.hashpw(
-            bytes(request.form['signup_pass'], 'utf-8'), bcrypt.gensalt(8))
-        cur.execute("insert into users values (nextval('users_user_id_seq'::regclass),'" +
-                    request.form['signup_user'] + "','" + salted.decode("utf-8") + "');commit;")
-        print('Created user ' + request.form['signup_user'])
+    cursor = GLOBAL_DB_CON.cursor()
+    cursor.execute("select * from users where username = '" +
+                   request.form["username"] + "';")
+
+    if cursor.fetchone() is None:
+        saltedPass = bcrypt.hashpw(
+            bytes(request.form["password"], "utf-8"), bcrypt.gensalt(8))
+        cursor.execute("insert into users values (nextval('users_user_id_seq'::regclass),'" +
+                       request.form["username"] + "','" + saltedPass.decode("utf-8") + "'); commit;")
+        print("Created user " + request.form["username"] + ".")
+        return json_response(data={"message": "User created successfully."})
     else:
-        print('Error: username "' +
-              request.form['signup_user'] + '" already in use.')
-    return Index()
+        print("Username '" + request.form["username"] +
+              "' already in use. Sending error message.")
+        return json_response(data={"message": "Username '" +
+                                   request.form["username"] + "' already in use."}, status=404)
 #---------------------------End Account APIs------------------------------#
 
 
-app.run(host='0.0.0.0', port=80)
+app.run(host="0.0.0.0", port=80)

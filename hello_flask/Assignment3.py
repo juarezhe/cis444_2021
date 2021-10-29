@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request
 from flask_json import FlaskJSON, json_response
 from BookstoreCon import GetDb
-import jwt
 import bcrypt
+import json
+import jwt
+import datetime
 
 app = Flask(__name__)
 FlaskJSON(app)
@@ -17,54 +19,30 @@ except:
     JWT_SECRET = "clean glove favored starlet bamboo puppet detection crispy gumball imprison quiet collected"
 
 
+def ValidateToken(token):
+    global JWT_TOKEN, JWT_SECRET
+
+    # If the token is still None, it hasn"t been set. Don"t attempt to
+    # validate.
+    if JWT_TOKEN is None:
+        print("No token stored in server.")
+        return False
+    else:
+        fromServer = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
+        fromRequest = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+
+        if fromServer == fromRequest:
+            print("Valid token.")
+            return True
+        else:
+            print("Tokens do not match.")
+            return False
+
+
 # Default endpoint.
 @app.route("/", methods=["GET"])
 def Index():
     return render_template("index.html")
-
-
-#---------------------------Start Item APIs-------------------------------#
-# Accepts one or more books for adding to the database.
-#
-# Returns the successfulness of the database add.
-# @app.route("/addBooks", methods=["POST"])
-# def AddBooks():
-    # TODO: This is a bit grand for the project, but would simplify
-    # adding books to the database.
-    # cursor = GLOBAL_DB_CON.cursor()
-
-    # TODO: For each book, do an insert.
-    # Build JSON message while iterating for return later.
-    # cursor.execute("insert into books values (nextval('books_book_id_seq'::regclass),'" +
-    #               request.form["book_title"] + "','" + request.form["book_price"] + "');")
-    # Finally, commit the database changes.
-    # cursor.commit()
-    # return  # json_response(data=message)
-
-
-# Returns a list of all books in the database.
-@ app.route("/fetchBookList", methods=["GET"])
-def FetchBookList():
-    # TODO: Add books to the database.
-    cursor = GLOBAL_DB_CON.cursor()
-    cursor.execute("select * from books;")
-
-    count = 0
-    message = "{books:{"
-    while 1:
-        row = cursor.fetchone()
-        if row is None:
-            break
-        else:
-            if count > 0:
-                message += ","
-            message += "{title:" + row[1] + ",price:" + row[2] + "}"
-            count += 1
-    message += "}\}"
-
-    print("Sending list of books.")
-    return json_response(data=message)
-#----------------------------End Item APIs--------------------------------#
 
 
 #--------------------------Start Token APIs-------------------------------#
@@ -74,32 +52,52 @@ def Logout():
     JWT_TOKEN = None
     print("User logged out. Sending updated token.")
     return json_response(data={"message": "User logged out."})
-
-
-# Accepts a web token.
-#
-# Returns message indicating successfulness of token validation.
-@ app.route("/validateToken", methods=["POST"])
-def ValidateToken():
-    global JWT_TOKEN, JWT_SECRET
-
-    # If the token is still None, it hasn"t been set. Don"t attempt to
-    # validate.
-    if JWT_TOKEN is None:
-        print("Token does not exist. Sending error message.")
-        return json_response(data={"message": "User is not logged in."}, status=404)
-    else:
-        fromServer = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
-        fromRequest = jwt.decode(
-            request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
-
-        if fromServer == fromRequest:
-            print("Tokens match. Sending success message.")
-            return json_response(data={"message": "User successfully validated."})
-        else:
-            print("Tokens do not match. Sending error message.")
-            return json_response(data={"message": "User is not logged in."}, status=404)
 #---------------------------End Token APIs--------------------------------#
+
+
+#---------------------------Start Item APIs-------------------------------#
+# Accepts a user ID and a book ID and creates a record of the purchase.
+#
+# Returns the successfulness of the database add.
+@app.route("/buyBook", methods=["POST"])
+def BuyBook():
+    global JWT_SECRET
+    decodedToken = jwt.decode(request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
+    cursor = GLOBAL_DB_CON.cursor()
+
+    cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" +
+                   str(decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
+    print("Purchase success. Sending message.")
+    return json_response(data={"message": "Book bought successfully."})
+
+
+# Returns a list of all books in the database.
+@ app.route("/getBookList", methods=["POST"])
+def GetBookList():
+    if ValidateToken(request.form["jwt"]):
+        cursor = GLOBAL_DB_CON.cursor()
+        cursor.execute("select * from books;")
+
+        count = 0
+        message = '{"books":['
+        while 1:
+            row = cursor.fetchone()
+            if row is None:
+                break
+            else:
+                if count > 0:
+                    message += ","
+                message += '{"book_id":' + str(row[0]) + ',"title":"' + row[1] + \
+                    '","price":' + str(row[2]) + "}"
+                count += 1
+        message += "]}"
+
+        print("Sending list of books.")
+        return json_response(data=json.loads(message))
+    else:
+        print("Invalid token. Sending error message.")
+        return json_response(data={"message": "User is not logged in."}, status=404)
+#----------------------------End Item APIs--------------------------------#
 
 
 #-------------------------Start Account APIs------------------------------#
@@ -108,7 +106,6 @@ def ValidateToken():
 # Returns message indicating successfulness of authentication process.
 @app.route("/login", methods=["POST"])
 def Login():
-    # TODO: Record login attempts?
     cursor = GLOBAL_DB_CON.cursor()
     cursor.execute("select * from users where username = '" +
                    request.form["username"] + "';")
@@ -124,9 +121,8 @@ def Login():
             print("Login by user '" + request.form["username"] + "'.")
             global JWT_TOKEN, JWT_SECRET
             JWT_TOKEN = jwt.encode(
-                {"userId": row[0]}, JWT_SECRET, algorithm="HS256")
-            return json_response(
-                data={"jwt": JWT_TOKEN})
+                {"user_id": row[0]}, JWT_SECRET, algorithm="HS256")
+            return json_response(data={"jwt": JWT_TOKEN})
         else:
             print("Incorrect password. Sending error message.")
             return json_response(

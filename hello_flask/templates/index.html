@@ -7,17 +7,45 @@
 			margin: 40px;
 		}
 
+		button {
+			border-radius: 4px;
+			height: 24px;
+			border: none;
+		}
+
+		.content {
+			display: none;
+		}
+
+		.header {
+  			font-weight: bold;
+  			border-bottom-style: solid;
+			border-bottom-width: thin;
+		}
+
+		.item {
+			padding: 4px;
+			background-color: white;
+  			border-bottom-style: solid;
+			border-bottom-width: thin;
+		}
+
 		.tab {
 			float: center;
 		}
 
 		.column {
-			width: 33%;
+			text-align: center;
+			width: 25%;
 			display: inline-block;
 		}
-		
-		.column.center {
-			width: 67%;
+
+		.column.buy {
+			width: 35px;
+		}
+
+		.column.title {
+			width: 50%;
 		}
 
 		.left.inner {
@@ -73,120 +101,102 @@
 	<script>
 		var token;
 
+		async function BuyBook(id) {
+			const postResponse = await $.post("/buyBook", { "jwt": token.jwt, "book_id": id }, "json");
+			alert(postResponse.data.message);
+		}
 		function logout() {
-			fetch('/logout');
+			fetch("/logout");
 			token = undefined;
-			$('#login_signup_bar').show();
-			$('#logout_button').hide();
-			$('#item_display').hide();
+			$("#form").show();
+			$(".content").hide();
 		}
+		async function FormCheck() {
+			var text = document.getElementById("form_header").innerHTML.toLowerCase();
+			var action = (text == "log in") ? "login" : "signup";
 
-		async function handleToken() {
-			if (token != undefined) {
-				const postResponse = await $.post("/validateToken", { "jwt": token.jwt }, function (data, textStatus) { }, "json");
-				if (postResponse.data.jwt == token.jwt) {
-					$('#login_signup_bar').hide();
-					$('#logout_button').show();
-					$('#item_display').show();
-				}
-			}
-		}
-		async function login_check() {
-			if ($('#login_user').val().length == 0) {
-				alert("Please enter a username to login.");
+			if ($("#username").val().length == 0) {
+				alert("Please enter a username to " + text + ".");
 				return false;
 			}
-			if ($('#login_pass').val().length == 0) {
-				alert("Please enter a password to login.");
+			if ($("#password").val().length == 0) {
+				alert("Please enter a password to " + text + ".");
 				return false;
 			}
-			if ($('#login_pass').val().length > 72) {
+			if ($("#password").val().length > 72) {
 				alert("Password must be 72 characters or less.");
 				return false;
 			}
-			const postResponse = await $.post("/login",
-				{ "username": document.getElementById('login_user').value, "password": document.getElementById('login_pass').value },
+			
+			const postResponse = await $.post("/" + action,
+				{ "username": document.getElementById("username").value, "password": document.getElementById("password").value },
 				"json");
-			if (postResponse.status == 200) {
+			if (action == "login" && postResponse.status == 200) {
 				token = await postResponse.data;
-				await handleToken();
+				getBookList();
+				$("#form").hide();
+				$(".content").show();
 			}
 			else {
 				alert(postResponse.data.message);
 			}
-			document.getElementById('login_user').value = "";
-			document.getElementById('login_pass').value = "";
-			return true;
-		}
-		async function signup_check() {
-			if ($('#signup_user').val().length == 0) {
-				alert("Please enter a username to signup.");
-				return false;
-			}
-			if ($('#signup_pass').val().length == 0) {
-				alert("Please enter a password to signup.");
-				return false;
-			}
-			if ($('#signup_pass').val().length > 72) {
-				alert("Password must be 72 characters or less.");
-				return false;
-			}
-			const postResponse = await $.post("/signup",
-				{ "username": document.getElementById('signup_user').value, "password": document.getElementById('signup_pass').value },
-				"json");
-			alert(postResponse.data.message);
-			document.getElementById('signup_user').value = "";
-			document.getElementById('signup_pass').value = "";
+			document.getElementById("username").value = "";
+			document.getElementById("password").value = "";
 			return true;
 		}
 		function switchForm(userAction) {
 			if (userAction == "login") {
-				$('.right').removeClass('selected');
-				$('.left')[0].classList.add('selected')
-				$('.left')[1].classList.add('selected')
-				$('#login')[0].style.display = "block";
-				$('#signup')[0].style.display = "none";
+				document.getElementById("form_header").innerHTML = "Log in";
+				document.getElementById("form_submit").value = "Log in";
+				$(".right").removeClass("selected");
+				$(".left")[0].classList.add("selected")
+				$(".left")[1].classList.add("selected")
 			}
 			if (userAction == "signup") {
-				$('.left').removeClass('selected');
-				$('.right')[0].classList.add('selected')
-				$('.right')[1].classList.add('selected')
-				$('#login')[0].style.display = "none";
-				$('#signup')[0].style.display = "block";
+				document.getElementById("form_header").innerHTML = "Sign up";
+				document.getElementById("form_submit").value = "Sign up";
+				$(".left").removeClass("selected");
+				$(".right")[0].classList.add("selected")
+				$(".right")[1].classList.add("selected")
+			}
+		}
+		async function getBookList() {
+			const postResponse = await $.post("/getBookList", { "jwt": token.jwt }, "json");
+			for (i = 0; i < postResponse.data.books.length; i++) {
+				document.getElementById("book_list").innerHTML += '<div class="item"><div class="column title">'
+					+ postResponse.data.books[i].title + '</div><div class="column">$'
+					+ postResponse.data.books[i].price + '</div><button id="'
+					+ postResponse.data.books[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>';
 			}
 		}
 	</script>
 
 	<div style="text-align:center">
-		<div id="logout_button" style="float:right; display: none;" onclick="logout();"><button>Logout</button></div><br />
+		<div class="content" style="float:right; display: none;" onclick="logout();"><button>Logout</button></div><br />
 		<h1>Welcome to the bookstore!</h1>
 
-		<div id="item_display" style="background:#ECECEC; display: none;">
-			<div class="column center">Title</div><div class="column">Price</div>
-			<div>Books will be displayed here.</div>
+		<div class="content">
+			<div id="book_list" style="background:#ECECEC; display: inline-block; width: 100%;">
+				<div class="header"><div class="column title">Title</div><div class="column">Price</div><div class="column buy"></div></div>
+			</div>
 		</div>
 
-		<div id="login_signup_bar" style="float:right; background:#ECECEC;">
+		<div id="form" style="float:right; background:#ECECEC;">
 			<div style="background:#FFFFFF">
-				<div class="left outer selected" onclick="switchForm('login')"><div class="left inner selected">Login</div></div><div class="right outer" onclick="switchForm('signup')"><div class="right inner">Sign up</div></div>
+				<div class="left outer selected" onclick="switchForm('login')">
+					<div class="left inner selected">Log in</div>
+				</div><div class="right outer" onclick="switchForm('signup')">
+					<div class="right inner">Sign up</div>
+				</div>
 			</div>
 
-			<div id="login" class="action">
-				<h2 style="text-align:center">Login</h2>
-				<label for="login_user">Username:</label> <input type="text" id="login_user" name="login_user"
-					required><br>
-				<label for="login_pass" style="text-align:left">Password:</label> <input type="password"
-					id="login_pass" name="login_pass" value="" style="float:right;" required><br><br>
-				<input type="submit" value="Login" onclick="return login_check();" style="float:right;">
-			</div>
-
-			<div id="signup" class="action" style="display:none">
-				<h2 style="text-align:center">Sign up</h2>
-				<label for="signup_user">Username:</label> <input type="text" id="signup_user" name="signup_user"
-					required><br>
-				<label for="signup_pass" style="text-align:left">Password:</label> <input type="password"
-					id="signup_pass" name="signup_pass" value="" style="float:right;" required><br><br>
-				<input type="submit" value="Sign up" onclick="return signup_check();" style="float:right;">
+			<div>
+				<h2 id="form_header" style="text-align:center">Log in</h2>
+				<label for="username">Username:</label> <input type="text" id="username" name="username" required><br>
+				<label for="password" style="text-align:left">Password:</label> <input type="password" id="password"
+					name="password" value="" style="float:right;" required><br><br>
+				<input id="form_submit" type="submit" value="Log in" onclick="return FormCheck();"
+					style="float:right;">
 			</div>
 		</div>
 	</div>

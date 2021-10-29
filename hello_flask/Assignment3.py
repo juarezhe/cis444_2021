@@ -50,7 +50,7 @@ def Index():
 def Logout():
     global JWT_TOKEN
     JWT_TOKEN = None
-    print("User logged out. Sending updated token.")
+    print("User logged out. Sending success message.")
     return json_response(data={"message": "User logged out."})
 #---------------------------End Token APIs--------------------------------#
 
@@ -65,10 +65,13 @@ def BuyBook():
     decodedToken = jwt.decode(request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
     cursor = GLOBAL_DB_CON.cursor()
 
-    cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" +
-                   str(decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
-    print("Purchase success. Sending message.")
-    return json_response(data={"message": "Book bought successfully."})
+    try:
+        cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" +
+                    str(decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
+        print("Purchase success. Sending message.")
+        return json_response(data={"message": "Book bought successfully."})
+    except:
+        return json_response(data={"message": "Error occured while writing to database."}, status=500)
 
 
 # Returns a list of all books in the database.
@@ -76,7 +79,10 @@ def BuyBook():
 def GetBookList():
     if ValidateToken(request.form["jwt"]):
         cursor = GLOBAL_DB_CON.cursor()
-        cursor.execute("select * from books;")
+        try:
+            cursor.execute("select * from books;")
+        except:
+            return json_response(data={"message": "Error occured while reading from database."}, status=500)
 
         count = 0
         message = '{"books":['
@@ -92,7 +98,7 @@ def GetBookList():
                 count += 1
         message += "]}"
 
-        print("Sending list of books.")
+        print("Valid user. Sending list of books.")
         return json_response(data=json.loads(message))
     else:
         print("Invalid token. Sending error message.")
@@ -107,8 +113,11 @@ def GetBookList():
 @app.route("/login", methods=["POST"])
 def Login():
     cursor = GLOBAL_DB_CON.cursor()
-    cursor.execute("select * from users where username = '" +
-                   request.form["username"] + "';")
+    try:
+        cursor.execute("select * from users where username = '" +
+                    request.form["username"] + "';")
+    except:
+        return json_response(data={"message": "Error occured while reading from database."}, status=500)
     row = cursor.fetchone()
 
     if row is None:
@@ -135,16 +144,22 @@ def Login():
 @app.route("/signup", methods=["POST"])
 def Signup():
     cursor = GLOBAL_DB_CON.cursor()
-    cursor.execute("select * from users where username = '" +
-                   request.form["username"] + "';")
+    try:
+        cursor.execute("select * from users where username = '" +
+                    request.form["username"] + "';")
+    except:
+        return json_response(data={"message": "Error occured while reading from database."}, status=500)
 
     if cursor.fetchone() is None:
         saltedPass = bcrypt.hashpw(
             bytes(request.form["password"], "utf-8"), bcrypt.gensalt(8))
-        cursor.execute("insert into users values (nextval('users_user_id_seq'::regclass),'" +
-                       request.form["username"] + "','" + saltedPass.decode("utf-8") + "'); commit;")
-        print("Created user " + request.form["username"] + ".")
-        return json_response(data={"message": "User created successfully."})
+        try:
+            cursor.execute("insert into users values (nextval('users_user_id_seq'::regclass),'" +
+                        request.form["username"] + "','" + saltedPass.decode("utf-8") + "'); commit;")
+            print("Created user " + request.form["username"] + ".")
+            return json_response(data={"message": "User created successfully."})
+        except:
+            return json_response(data={"message": "Error occured while writing to database."}, status=500)
     else:
         print("Username '" + request.form["username"] +
               "' already in use. Sending error message.")

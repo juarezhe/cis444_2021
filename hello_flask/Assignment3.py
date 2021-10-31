@@ -10,6 +10,8 @@ app = Flask(__name__)
 FlaskJSON(app)
 
 GLOBAL_DB_CON = GetDb()
+BOOK_ID_LENGTH = 8
+USER_ID_LENGTH = 8
 JWT_TOKEN = None
 JWT_SECRET = None
 try:
@@ -20,8 +22,6 @@ except:
 
 
 def ValidateToken(token):
-    global JWT_TOKEN, JWT_SECRET
-
     # If the token is still None, it hasn"t been set. Don"t attempt to
     # validate.
     if JWT_TOKEN is None:
@@ -61,13 +61,13 @@ def Logout():
 # Returns the successfulness of the database add.
 @app.route("/buyBook", methods=["POST"])
 def BuyBook():
-    global JWT_SECRET
-    decodedToken = jwt.decode(request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
+    decodedToken = jwt.decode(
+        request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
     cursor = GLOBAL_DB_CON.cursor()
 
     try:
-        cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" +
-                    str(decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
+        cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" + str(
+            decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
         print("Purchase success. Sending message.")
         return json_response(data={"message": "Book bought successfully."})
     except:
@@ -80,7 +80,8 @@ def GetBookList():
     if ValidateToken(request.form["jwt"]):
         cursor = GLOBAL_DB_CON.cursor()
         try:
-            cursor.execute("select * from books;")
+            cursor.execute("select lpad(book_id::varchar(" + str(BOOK_ID_LENGTH) +
+                           "), " + str(BOOK_ID_LENGTH) + ", '0'), title, price from books;")
         except:
             return json_response(data={"message": "Error occured while reading from database."}, status=500)
 
@@ -93,7 +94,7 @@ def GetBookList():
             else:
                 if count > 0:
                     message += ","
-                message += '{"book_id":' + str(row[0]) + ',"title":"' + row[1] + \
+                message += '{"book_id":"' + row[0] + '","title":"' + row[1] + \
                     '","price":' + str(row[2]) + "}"
                 count += 1
         message += "]}"
@@ -114,8 +115,9 @@ def GetBookList():
 def Login():
     cursor = GLOBAL_DB_CON.cursor()
     try:
-        cursor.execute("select * from users where username = '" +
-                    request.form["username"] + "';")
+        # Pad with leading zeros up to 8 characters.
+        cursor.execute("select lpad(user_id::varchar(" + str(USER_ID_LENGTH) + "), " + str(USER_ID_LENGTH) +
+                       ", '0'), username, password from users where username = '" + request.form["username"] + "';")
     except:
         return json_response(data={"message": "Error occured while reading from database."}, status=500)
     row = cursor.fetchone()
@@ -128,7 +130,7 @@ def Login():
     else:
         if bcrypt.checkpw(bytes(request.form["password"], "utf-8"), bytes(row[2], "utf-8")) == True:
             print("Login by user '" + request.form["username"] + "'.")
-            global JWT_TOKEN, JWT_SECRET
+            global JWT_TOKEN
             JWT_TOKEN = jwt.encode(
                 {"user_id": row[0]}, JWT_SECRET, algorithm="HS256")
             return json_response(data={"jwt": JWT_TOKEN})
@@ -146,7 +148,7 @@ def Signup():
     cursor = GLOBAL_DB_CON.cursor()
     try:
         cursor.execute("select * from users where username = '" +
-                    request.form["username"] + "';")
+                       request.form["username"] + "';")
     except:
         return json_response(data={"message": "Error occured while reading from database."}, status=500)
 
@@ -155,7 +157,7 @@ def Signup():
             bytes(request.form["password"], "utf-8"), bcrypt.gensalt(8))
         try:
             cursor.execute("insert into users values (nextval('users_user_id_seq'::regclass),'" +
-                        request.form["username"] + "','" + saltedPass.decode("utf-8") + "'); commit;")
+                           request.form["username"] + "','" + saltedPass.decode("utf-8") + "'); commit;")
             print("Created user " + request.form["username"] + ".")
             return json_response(data={"message": "User created successfully."})
         except:

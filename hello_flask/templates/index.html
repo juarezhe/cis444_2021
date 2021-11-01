@@ -101,18 +101,23 @@
 	<script>
 		var token;
 
-		async function BuyBook(id) {
-			const postResponse = await $.post("/buyBook", { "jwt": token.jwt, "book_id": id }, "json");
-			alert(postResponse.data.message);
+		function BuyBook(id) {
+			$.get("/buyBook", { "jwt": token.jwt, "book_id": id }, function(data) {
+				alert(data.data.message);
+			});
 		}
-		function logout() {
-			fetch("/logout");
-			token = undefined;
-			$("#form").show();
-			$(".content").hide();
+
+		function LogOut() {
+			$.get("/logout", { "jwt": token.jwt }, function(data) {
+				token = undefined;
+				$("#form").show();
+				$(".content").hide();
+				alert(data.data.message);
+			});
 		}
-		async function FormCheck() {
-			var text = document.getElementById("form_header").innerHTML.toLowerCase();
+
+		function FormCheck() {
+			var text = $("#form_header").html().toLocaleLowerCase();
 			var action = (text == "log in") ? "login" : "signup";
 
 			if ($("#username").val().length == 0) {
@@ -127,24 +132,27 @@
 				alert("Password must be 72 characters or less.");
 				return false;
 			}
-			
-			const postResponse = await $.post("/" + action,
-				{ "username": document.getElementById("username").value, "password": document.getElementById("password").value },
-				"json");
-			if (action == "login" && postResponse.status == 200) {
-				token = await postResponse.data;
-				getBookList();
-				$("#form").hide();
-				$(".content").show();
-			}
-			else {
-				alert(postResponse.data.message);
-			}
-			document.getElementById("username").value = "";
-			document.getElementById("password").value = "";
+
+			$.post("/" + action, { "username": $("#username").val(), "password": $("#password").val() },
+			function(data) {
+				if (data.data.jwt) {
+					token = data.data;
+				}
+				else {
+					alert(data.data.message);
+				}
+				if (token != undefined) {
+					GetBookList();
+					$("#form").hide();
+					$(".content").show();
+				}
+			});
+			$("#username").val("");
+			$("#password").val("");
 			return true;
 		}
-		function switchForm(userAction) {
+
+		function SwitchForm(userAction) {
 			if (userAction == "login") {
 				document.getElementById("form_header").innerHTML = "Log in";
 				document.getElementById("form_submit").value = "Log in";
@@ -160,19 +168,21 @@
 				$(".right")[1].classList.add("selected")
 			}
 		}
-		async function getBookList() {
-			const postResponse = await $.post("/getBookList", { "jwt": token.jwt }, "json");
-			for (i = 0; i < postResponse.data.books.length; i++) {
-				document.getElementById("book_list").innerHTML += '<div class="item"><div class="column title">'
-					+ postResponse.data.books[i].title + '</div><div class="column">$'
-					+ postResponse.data.books[i].price + '</div><button id="'
-					+ postResponse.data.books[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>';
-			}
+
+		function GetBookList() {
+			$.get("/getBookList", { "jwt": token.jwt }, function(data) {
+				for (i = 0; i < data.data.books.length; i++) {
+					document.getElementById("book_list").innerHTML += '<div class="item"><div class="column title">'
+						+ data.data.books[i].title + '</div><div class="column">$'
+						+ data.data.books[i].price + '</div><button id="'
+						+ data.data.books[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>';
+				}
+			});
 		}
 	</script>
 
 	<div style="text-align:center">
-		<div class="content" style="float:right; display: none;" onclick="logout();"><button>Logout</button></div><br />
+		<div class="content" style="float:right; display: none;" onclick="LogOut();"><button>Logout</button></div><br />
 		<h1>Welcome to the bookstore!</h1>
 
 		<div class="content">
@@ -183,9 +193,9 @@
 
 		<div id="form" style="float:right; background:#ECECEC;">
 			<div style="background:#FFFFFF">
-				<div class="left outer selected" onclick="switchForm('login')">
+				<div class="left outer selected" onclick="SwitchForm('login')">
 					<div class="left inner selected">Log in</div>
-				</div><div class="right outer" onclick="switchForm('signup')">
+				</div><div class="right outer" onclick="SwitchForm('signup')">
 					<div class="right inner">Sign up</div>
 				</div>
 			</div>

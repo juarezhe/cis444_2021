@@ -25,18 +25,11 @@ def ValidateToken(token):
     # If the token is still None, it hasn"t been set. Don"t attempt to
     # validate.
     if JWT_TOKEN is None:
-        print("No token stored in server.")
         return False
     else:
         fromServer = jwt.decode(JWT_TOKEN, JWT_SECRET, algorithms=["HS256"])
         fromRequest = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-
-        if fromServer == fromRequest:
-            print("Valid token.")
-            return True
-        else:
-            print("Tokens do not match.")
-            return False
+        return fromServer == fromRequest
 
 
 # Default endpoint.
@@ -48,10 +41,15 @@ def Index():
 #--------------------------Start Token APIs-------------------------------#
 @ app.route("/logout", methods=["GET"])
 def Logout():
-    global JWT_TOKEN
-    JWT_TOKEN = None
-    print("User logged out. Sending success message.")
-    return json_response(data={"message": "User logged out."})
+    if ValidateToken(request.args.get("jwt")):
+        global JWT_TOKEN
+        JWT_TOKEN = None
+
+        print("User logged out. Sending success message.")
+        return json_response(data={"message": "User logged out."})
+    else:
+        print("Invalid token. Sending error message.")
+        return json_response(data={"message": "User is not logged in."}, status=404)
 #---------------------------End Token APIs--------------------------------#
 
 
@@ -59,26 +57,31 @@ def Logout():
 # Accepts a user ID and a book ID and creates a record of the purchase.
 #
 # Returns the successfulness of the database add.
-@app.route("/buyBook", methods=["POST"])
+@app.route("/buyBook", methods=["GET"])
 def BuyBook():
-    decodedToken = jwt.decode(
-        request.form["jwt"], JWT_SECRET, algorithms=["HS256"])
-    cursor = GLOBAL_DB_CON.cursor()
+    token = request.args.get("jwt")
+    if ValidateToken(token):
+        decodedToken = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        cursor = GLOBAL_DB_CON.cursor()
 
-    try:
-        cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" + str(
-            decodedToken["user_id"]) + "','" + str(request.form["book_id"]) + "','" + str(datetime.datetime.now()) + "'); commit;")
-        print("Purchase success. Sending message.")
-        return json_response(data={"message": "Book bought successfully."})
-    except:
-        return json_response(data={"message": "Error occured while writing to database."}, status=500)
+        try:
+            cursor.execute("insert into purchases values (nextval('purchases_transaction_seq'::regclass),'" + str(
+                decodedToken["user_id"]) + "','" + str(request.args.get("book_id")) + "','" + str(datetime.datetime.now()) + "'); commit;")
+            print("Purchase success. Sending message.")
+            return json_response(data={"message": "Book bought successfully."})
+        except:
+            return json_response(data={"message": "Error occured while writing to database."}, status=500)
+    else:
+        print("Invalid token. Sending error message.")
+        return json_response(data={"message": "User is not logged in."}, status=404)
 
 
 # Returns a list of all books in the database.
-@ app.route("/getBookList", methods=["POST"])
+@ app.route("/getBookList", methods=["GET"])
 def GetBookList():
-    if ValidateToken(request.form["jwt"]):
+    if ValidateToken(request.args.get("jwt")):
         cursor = GLOBAL_DB_CON.cursor()
+
         try:
             cursor.execute("select lpad(book_id::varchar(" + str(BOOK_ID_LENGTH) +
                            "), " + str(BOOK_ID_LENGTH) + ", '0'), title, price from books;")
@@ -99,7 +102,7 @@ def GetBookList():
                 count += 1
         message += "]}"
 
-        print("Valid user. Sending list of books.")
+        print("Valid token. Sending list of books.")
         return json_response(data=json.loads(message))
     else:
         print("Invalid token. Sending error message.")

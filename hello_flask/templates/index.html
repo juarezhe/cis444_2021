@@ -100,6 +100,7 @@
 <body>
 	<script>
 		var token;
+		var bookList;
 
 		function BuyBook(id) {
 			$.get("/buyBook", { "jwt": token.jwt, "book_id": id }, function(data) {
@@ -109,8 +110,9 @@
 
 		function LogOut() {
 			$.get("/logout", { "jwt": token.jwt }, function(data) {
-				token = undefined;
+				token = bookList = undefined;
 				$("#form").show();
+				$("#book_list").children(".item").remove();
 				$(".content").hide();
 				alert(data.data.message);
 			});
@@ -154,15 +156,15 @@
 
 		function SwitchForm(userAction) {
 			if (userAction == "login") {
-				document.getElementById("form_header").innerHTML = "Log in";
-				document.getElementById("form_submit").value = "Log in";
+				$("#form_header").html("Log in")
+				$("#form_submit").val("Log in")
 				$(".right").removeClass("selected");
 				$(".left")[0].classList.add("selected")
 				$(".left")[1].classList.add("selected")
 			}
 			if (userAction == "signup") {
-				document.getElementById("form_header").innerHTML = "Sign up";
-				document.getElementById("form_submit").value = "Sign up";
+				$("#form_header").html("Sign up")
+				$("#form_submit").val("Sign up")
 				$(".left").removeClass("selected");
 				$(".right")[0].classList.add("selected")
 				$(".right")[1].classList.add("selected")
@@ -170,12 +172,13 @@
 		}
 
 		function GetBookList() {
-			$.get("/getBookList", { "jwt": token.jwt }, function(data) {
-				for (i = 0; i < data.data.books.length; i++) {
-					document.getElementById("book_list").innerHTML += '<div class="item"><div class="column title">'
-						+ data.data.books[i].title + '</div><div class="column">$'
-						+ data.data.books[i].price + '</div><button id="'
-						+ data.data.books[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>';
+			$.get("/getBookList", { "jwt": token.jwt }, function (data) {
+				bookList = data.data.books;
+				for (i = 0; i < bookList.length; i++) {
+					$("#book_list").append('<div class="item"><div class="column title">'
+						+ bookList[i].title + '</div><div class="column">$'
+						+ bookList[i].price + '</div><button id="'
+						+ bookList[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>');
 				}
 			});
 		}

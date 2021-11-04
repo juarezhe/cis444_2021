@@ -1,5 +1,6 @@
 # JWT secret file
 hello_flask/secret.txt
+hello_flask/connection.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

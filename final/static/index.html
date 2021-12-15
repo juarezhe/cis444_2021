@@ -97,25 +97,37 @@
 		</script>
 </head>
 
-<body>
+<body onload="ReceiveMessage(websocket);">
 	<script>
+		const websocket = new WebSocket("ws://localhost:8001/");
 		var token;
 		var bookList;
 
-		function BuyBook(id) {
-			$.get("/buyBook", { "jwt": token.jwt, "book_id": id }, function(data) {
-				alert(data.data.message);
+		function ReceiveMessage(websocket) {
+			websocket.addEventListener("message", ({ data }) => {
+				const dataAsJson = JSON.parse(data);
+				if (dataAsJson.data.jwt) {
+					console.log("Found dataAsJson.data.jwt");
+					token = dataAsJson.data.jwt
+				}
+				else {
+					alert(data.data.message);
+				}
+				if (token != undefined) {
+					GetBookList();
+					$("#form").hide();
+					$(".content").show();
+				}
 			});
 		}
 
+		function BuyBook(id) {
+			websocket.send(JSON.stringify({ "action": "buyBook", "jwt": token.jwt, "book_id": id }));
+		}
+
 		function LogOut() {
-			$.get("/logout", { "jwt": token.jwt }, function(data) {
-				token = bookList = undefined;
-				$("#form").show();
-				$("#book_list").children(".item").remove();
-				$(".content").hide();
-				alert(data.data.message);
-			});
+			websocket.send(JSON.stringify({ "action": "logout", "jwt": token.jwt }));
+			websocket.close(1000);
 		}
 
 		function FormCheck() {
@@ -135,20 +147,9 @@
 				return false;
 			}
 
-			$.post("/" + action, { "username": $("#username").val(), "password": $("#password").val() },
-			function(data) {
-				if (data.data.jwt) {
-					token = data.data;
-				}
-				else {
-					alert(data.data.message);
-				}
-				if (token != undefined) {
-					GetBookList();
-					$("#form").hide();
-					$(".content").show();
-				}
-			});
+			var message = JSON.stringify({ "action": action, "username": $("#username").val(), "password": $("#password").val() });
+			websocket.send(message);
+			
 			$("#username").val("");
 			$("#password").val("");
 			return true;
@@ -172,15 +173,7 @@
 		}
 
 		function GetBookList() {
-			$.get("/getBookList", { "jwt": token.jwt }, function (data) {
-				bookList = data.data.books;
-				for (i = 0; i < bookList.length; i++) {
-					$("#book_list").append('<div class="item"><div class="column title">'
-						+ bookList[i].title + '</div><div class="column">$'
-						+ bookList[i].price + '</div><button id="'
-						+ bookList[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>');
-				}
-			});
+			websocket.send(JSON.stringify({ "action": "getBookList", "jwt": token.jwt }));
 		}
 	</script>
 

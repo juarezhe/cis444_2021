@@ -18,15 +18,15 @@
 		}
 
 		.header {
-  			font-weight: bold;
-  			border-bottom-style: solid;
+				font-weight: bold;
+				border-bottom-style: solid;
 			border-bottom-width: thin;
 		}
 
 		.item {
 			padding: 4px;
 			background-color: white;
-  			border-bottom-style: solid;
+				border-bottom-style: solid;
 			border-bottom-width: thin;
 		}
 
@@ -93,32 +93,13 @@
 		}
 	</style>
 	<script src="https://code.jquery.com/jquery-3.6.0.js"
-		integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous">
-		</script>
+		integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+	<script src="/static/cis444.js"></script>
 </head>
 
 <body>
 	<script>
-		var token;
-		var bookList;
-
-		function BuyBook(id) {
-			$.get("/buyBook", { "jwt": token.jwt, "book_id": id }, function(data) {
-				alert(data.data.message);
-			});
-		}
-
-		function LogOut() {
-			$.get("/logout", { "jwt": token.jwt }, function(data) {
-				token = bookList = undefined;
-				$("#form").show();
-				$("#book_list").children(".item").remove();
-				$(".content").hide();
-				alert(data.data.message);
-			});
-		}
-
-		function FormCheck() {
+			function FormCheck() {
 			var text = $("#form_header").html().toLowerCase();
 			var action = (text == "log in") ? "login" : "signup";
 
@@ -135,20 +116,25 @@
 				return false;
 			}
 
-			$.post("/" + action, { "username": $("#username").val(), "password": $("#password").val() },
-			function(data) {
-				if (data.data.jwt) {
-					token = data.data;
-				}
-				else {
-					alert(data.data.message);
-				}
-				if (token != undefined) {
-					GetBookList();
-					$("#form").hide();
-					$(".content").show();
-				}
-			});
+			$.post("/open_api/" + action, { "username": $("#username").val(), "password": $("#password").val() },
+				function (data, textStatus) {
+					console.log(JSON.stringify(data));
+					if (data.token) {
+						token = data;
+					}
+					else {
+						alert(data.message);
+					}
+					if (token != undefined) {
+						GetBookList();
+						$("#form").hide();
+						$(".content").show();
+					}
+				}, "json").fail( function(response) {
+					//this gets called if the server throws an error
+					console.log("error");
+					console.log(response);
+				});
 			$("#username").val("");
 			$("#password").val("");
 			return true;
@@ -171,8 +157,25 @@
 			}
 		}
 
+		function send_form() {
+			$.post("/open_api/login", { "firstname": $('#fname').val(), "password": $('#password').val() },
+				function (data, textStatus) {
+					//this gets called when browser receives response from server
+					console.log(data.token);
+					//Set global JWT
+					token = data.token;
+					//make secure call with the jwt
+					get_books();
+				}, "json").fail(function (response) {
+					//this gets called if the server throws an error
+					console.log("error");
+					console.log(response);
+				});
+			return false;
+		}
+
 		function GetBookList() {
-			$.get("/getBookList", { "jwt": token.jwt }, function (data) {
+			secure_get_with_token("/secure_api/get_books", {}, function (data) {
 				bookList = data.data.books;
 				for (i = 0; i < bookList.length; i++) {
 					$("#book_list").append('<div class="item"><div class="column title">'
@@ -180,10 +183,16 @@
 						+ bookList[i].price + '</div><button id="'
 						+ bookList[i].book_id + '" onclick="BuyBook(this.id);" class="column buy">Buy</buton></div>');
 				}
-			});
+			}, function (err) { console.log(err) });
 		}
-	</script>
 
+		function buy_book(book_id) {
+			//make secure call with the jwt
+			secure_get_with_token("/secure_api/get_books", { "book_id": book_id }, function (data) { console.log("got books"); console.log(data) },
+				function (err) { console.log(err) });
+		}
+
+	</script>
 	<div style="text-align:center">
 		<div class="content" style="float:right; display: none;" onclick="LogOut();"><button>Logout</button></div><br />
 		<h1>Welcome to the bookstore!</h1>

@@ -44,23 +44,6 @@ def Index():
     return render_template("index.html")
 
 
-#--------------------------Start Token APIs-------------------------------#
-@ app.route("/logout", methods=["GET"])
-def Logout():
-    print("Logout() entry")
-
-    if ValidateToken(request.args.get("jwt")):
-        # TODO: Remove token from list of valid, active tokens?
-        global JWT_TOKEN
-        JWT_TOKEN = None
-        print("User logged out. Sending response.")
-        return json_response(data={"message": "User logged out."})
-    else:
-        print("User not logged in. Sending response.")
-        return json_response(data={"message": "Already logged out."})
-#---------------------------End Token APIs--------------------------------#
-
-
 #---------------------------Start Item APIs-------------------------------#
 # Accepts a JWT and a book ID. Upon successful validation of the JWT,
 # creates a record of the purchase.
@@ -167,6 +150,21 @@ def Login():
     else:
         print(f"Username '{username}' does not exist. Sending response.")
         return json_response(data={"message": f"Username '{username}' does not exist."}, status=404)
+
+
+@ app.route("/logout", methods=["GET"])
+def Logout():
+    print("Logout() entry")
+
+    if ValidateToken(request.args.get("jwt")):
+        # TODO: Remove token from list of valid, active tokens?
+        global JWT_TOKEN
+        JWT_TOKEN = None
+        print("User logged out. Sending response.")
+        return json_response(data={"message": "User logged out."})
+    else:
+        print("User not logged in. Sending response.")
+        return json_response(data={"message": "Already logged out."})
 
 
 # Accepts username and password for adding to the database.

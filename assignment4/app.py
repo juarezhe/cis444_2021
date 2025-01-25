@@ -1,7 +1,7 @@
 from flask import Flask, redirect, g
 from flask_json import FlaskJSON, json_response
 import traceback
-from DbConn import GetDb
+from db_conn import get_db
 from tools.token_required import token_required
 from tools.get_aws_secrets import get_secrets
 from tools.logging import logger
@@ -18,7 +18,7 @@ FlaskJSON(app)
 # g is flask for a global var storage
 def init_new_env():
     if 'DB_CONN' not in g:
-        g.DB_CONN = GetDb()
+        g.DB_CONN = get_db()
     if 'BOOK_ID_LENGTH' not in g:
         g.BOOK_ID_LENGTH = 8
     if 'USER_ID_LENGTH' not in g:

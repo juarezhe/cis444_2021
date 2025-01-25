@@ -1,7 +1,7 @@
 import jwt
 from functools import wraps
-from flask import request, redirect, g
-from flask_json import FlaskJSON, JsonError, json_response, as_json
+from flask import request, g
+from flask_json import json_response
 
 from tools.logging import logger
 
@@ -40,4 +40,3 @@ def token_required(f):
             return json_response(status_=401 ,message=expired_msg)
 
     return _verify
-

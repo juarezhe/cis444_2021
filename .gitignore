@@ -1,6 +1,8 @@
 # JWT secret file
-hello_flask/secret.txt
-hello_flask/connection.txt
+*secret*
+
+# PostgreSQL connection file
+*connection.yml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
